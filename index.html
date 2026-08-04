@@ -445,6 +445,7 @@ footer{
   color:var(--ink);
   outline:none;
 }
+#firsta{color:#a11f05;}
 .form-field textarea{ min-height:110px; resize:vertical; font-family:'IBM Plex Mono', monospace; font-size:13px; }
 .form-field input:focus, .form-field select:focus, .form-field textarea:focus{ border-color:var(--accent); }
 .form-error{
@@ -459,7 +460,6 @@ footer{
   .header{ padding:40px 16px 22px; }
   .grid{ grid-template-columns:1fr; }
 }
-#firsta{color:#a11f05;}
 </style>
 </head>
 <body>
@@ -706,9 +706,21 @@ function getFiltered(){
   return list;
 }
 
+function getCategoryNumberMap(){
+  const map = {};
+  const counters = {};
+  // Sort by id so numbering stays stable and in catalog order within each category
+  const sorted = state.prompts.slice().sort((a, b) => a.id - b.id);
+  sorted.forEach(p => {
+    counters[p.cat] = (counters[p.cat] || 0) + 1;
+    map[p.id] = counters[p.cat];
+  });
+  return map;
+}
+
 function cardHTML(p, idx){
   const isFav = state.favorites.includes(p.id);
-  const num = String(p.id).padStart(3,'0');
+  const num = String(categoryNumberMap[p.id] || 0).padStart(3,'0');
   return `
     <div class="card" data-id="${p.id}">
       <div class="card-top">
@@ -735,9 +747,12 @@ function escapeHTML(str){
   return div.innerHTML;
 }
 
+let categoryNumberMap = {};
+
 function render(){
   renderTabs();
   renderAdminBar();
+  categoryNumberMap = getCategoryNumberMap();
   const filtered = getFiltered();
   resultsMeta.textContent = `${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'} on file`;
   addBtnSlot.innerHTML = state.isAdmin ? `<button class="add-btn" id="openAddBtn">+ Add a new prompt</button>` : '';
@@ -812,7 +827,7 @@ function openModal(prompt){
   const isFav = state.favorites.includes(prompt.id);
   modal.innerHTML = `
     <button class="modal-close" id="modalClose">&times;</button>
-    <span class="card-cat">${prompt.cat} · No. ${String(prompt.id).padStart(3,'0')}</span>
+  <span class="card-cat">${prompt.cat} · No. ${String(categoryNumberMap[prompt.id] || 0).padStart(3,'0')}</span>
     <h2>${prompt.title}</h2>
     <div class="card-body">${escapeHTML(prompt.body)}</div>
     <div class="card-tags"><b>Best for:</b> ${prompt.models}</div>
