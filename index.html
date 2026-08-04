@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Prompt Catalog</title>
+<title>The Prompt library</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Special+Elite&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
@@ -138,6 +138,24 @@ body{
   color:#F8F5EA;
 }
 .tab .count{ opacity:0.65; margin-left:4px; }
+.tab-edit{
+  margin-left:6px;
+  opacity:0.6;
+  font-size:11px;
+}
+.tab-edit:hover{ opacity:1; }
+.tab-delete{
+  margin-left:4px;
+  opacity:0.6;
+  font-size:11px;
+}
+.tab-delete:hover{ opacity:1; color:#A13B2E; }
+.tab-add{
+  background:transparent;
+  border-style:dashed;
+  color:var(--accent-dark);
+}
+.tab-add:hover{ background:var(--card); }
 
 .results-meta{
   max-width:1100px;
@@ -465,7 +483,7 @@ footer{
 <body>
 
 <div class="header">
-  <div class="eyebrow">Good prompts make good output</div>
+  <div class="eyebrow">Good prompt make good output</div>
   <h1>The Prompt Library</h1>
  
     <p id="firsta"><b>1. We use AI to think, not to think for us</b></p>
@@ -479,7 +497,7 @@ footer{
 <div class="controls">
   <div class="search-row">
     <div class="search-box">
-      <input type="text" id="searchInput" placeholder="Search the catalog…" autocomplete="off">
+      <input type="text" id="searchInput" placeholder="Search the library…" autocomplete="off">
     </div>
   </div>
   <div class="tabs" id="tabs"></div>
@@ -498,7 +516,7 @@ footer{
 </div>
 
 <footer>
-  This website is made by Mr.Chow with the help of Claude AI
+  This website is made by Mr.Chow alongside with Claude AI
 </footer>
 
 <!-- Firebase (fill in YOUR_FIREBASE_CONFIG below — see setup notes in the script) -->
@@ -574,6 +592,7 @@ let state = {
   query: "",
   favorites: [],
   prompts: [],
+  categories: [],
   isAdmin: false
 };
 
@@ -587,9 +606,17 @@ const adminBar = document.getElementById('adminBar');
 const addBtnSlot = document.getElementById('addBtnSlot');
 
 function getCategories(){
+  // Categories are stored explicitly now (so empty ones can exist),
+  // but we still fold in any category found on a prompt just in case.
+  const cats = state.categories.slice();
+  state.prompts.forEach(p => { if(!cats.includes(p.cat)) cats.push(p.cat); });
+  return ["All", ...cats, "Favorites"];
+}
+
+function deriveCategoriesFromPrompts(){
   const seen = [];
   state.prompts.forEach(p => { if(!seen.includes(p.cat)) seen.push(p.cat); });
-  return ["All", ...seen, "Favorites"];
+  return seen;
 }
 
 // ---- Prompts now live in Firestore so every visitor sees the same
@@ -597,21 +624,37 @@ function getCategories(){
 function subscribeToPrompts(){
   CATALOG_DOC.onSnapshot(async (docSnap) => {
     if(docSnap.exists && docSnap.data().list){
-      state.prompts = docSnap.data().list;
+      const data = docSnap.data();
+      state.prompts = data.list;
+      if(data.categories && data.categories.length){
+        state.categories = data.categories;
+      } else {
+        // One-time migration: older data didn't store categories
+        // separately, so derive them once and save the new field.
+        state.categories = deriveCategoriesFromPrompts();
+        try{ await CATALOG_DOC.set({ list: state.prompts, categories: state.categories }); }
+        catch(e){ console.error('Could not migrate categories', e); }
+      }
     } else {
       // First run: nothing in Firestore yet, seed it with the defaults.
       state.prompts = PROMPTS_SEED.slice();
-      try{ await CATALOG_DOC.set({ list: state.prompts }); }catch(e){ console.error('Could not seed catalog', e); }
+      state.categories = deriveCategoriesFromPrompts();
+      try{ await CATALOG_DOC.set({ list: state.prompts, categories: state.categories }); }
+      catch(e){ console.error('Could not seed catalog', e); }
     }
     render();
   }, (err) => {
     console.error('Firestore read failed — check your firebaseConfig and security rules.', err);
-    if(state.prompts.length === 0){ state.prompts = PROMPTS_SEED.slice(); render(); }
+    if(state.prompts.length === 0){
+      state.prompts = PROMPTS_SEED.slice();
+      state.categories = deriveCategoriesFromPrompts();
+      render();
+    }
   });
 }
 
 async function savePrompts(){
-  try{ await CATALOG_DOC.set({ list: state.prompts }); }
+  try{ await CATALOG_DOC.set({ list: state.prompts, categories: state.categories }); }
   catch(e){
     console.error('Could not save prompts to Firestore', e);
     alert("Couldn't save to the database. Check that you're signed in and your Firestore rules allow writes.");
@@ -682,10 +725,47 @@ function renderTabs(){
   getCategories().forEach(cat => {
     const btn = document.createElement('button');
     btn.className = 'tab' + (state.activeTab === cat ? ' active' : '');
-    btn.innerHTML = `${cat === "Favorites" ? "★ " : ""}${cat} <span class="count">${categoryCount(cat)}</span>`;
-    btn.onclick = () => { state.activeTab = cat; render(); };
+    const canEdit = state.isAdmin && cat !== "All" && cat !== "Favorites";
+    btn.innerHTML = `${cat === "Favorites" ? "★ " : ""}${cat} <span class="count">${categoryCount(cat)}</span>${canEdit ? ` <span class="tab-edit" data-cat="${cat}" title="Rename this category">✎</span><span class="tab-delete" data-cat="${cat}" title="Delete this category">✕</span>` : ''}`;
+    btn.onclick = (e) => {
+      if(e.target.classList.contains('tab-edit')){
+        e.stopPropagation();
+        openEditCategoryModal(e.target.dataset.cat);
+        return;
+      }
+      if(e.target.classList.contains('tab-delete')){
+        e.stopPropagation();
+        deleteCategory(e.target.dataset.cat);
+        return;
+      }
+      state.activeTab = cat;
+      render();
+    };
     tabsEl.appendChild(btn);
   });
+  if(state.isAdmin){
+    const addBtn = document.createElement('button');
+    addBtn.className = 'tab tab-add';
+    addBtn.textContent = '+ Category';
+    addBtn.onclick = () => openAddCategoryModal();
+    tabsEl.appendChild(addBtn);
+  }
+}
+
+function deleteCategory(cat){
+  const count = state.prompts.filter(p => p.cat === cat).length;
+  const msg = count > 0
+    ? `"${cat}" has ${count} prompt${count === 1 ? '' : 's'} in it. Deleting the category will move ${count === 1 ? 'it' : 'them'} to "Uncategorized" — they won't be deleted. Continue?`
+    : `Delete the empty category "${cat}"?`;
+  if(!confirm(msg)) return;
+  if(count > 0){
+    state.prompts = state.prompts.map(p => p.cat === cat ? { ...p, cat: "Uncategorized" } : p);
+    if(!state.categories.includes("Uncategorized")){ state.categories.push("Uncategorized"); }
+  }
+  state.categories = state.categories.filter(c => c !== cat);
+  if(state.activeTab === cat){ state.activeTab = "All"; }
+  savePrompts();
+  render();
 }
 
 function getFiltered(){
@@ -727,6 +807,7 @@ function cardHTML(p, idx){
         <span class="card-cat">${p.cat}</span>
         <span class="card-no">No. ${num}</span>
         <button class="fav-btn ${isFav ? 'active' : ''}" data-action="fav" data-id="${p.id}" title="Save to favorites">${isFav ? '★' : '☆'}</button>
+        ${state.isAdmin ? `<button class="delete-btn" data-action="edit" data-id="${p.id}" title="Edit this prompt">✎</button>` : ''}
         ${state.isAdmin ? `<button class="delete-btn" data-action="delete" data-id="${p.id}" title="Delete this prompt">✕</button>` : ''}
       </div>
       <h3 class="card-title">${p.title}</h3>
@@ -745,6 +826,10 @@ function escapeHTML(str){
   const div = document.createElement('div');
   div.innerText = str;
   return div.innerHTML;
+}
+
+function escapeAttr(str){
+  return escapeHTML(str).replace(/"/g, '&quot;');
 }
 
 let categoryNumberMap = {};
@@ -771,7 +856,7 @@ function renderAdminBar(){
     adminBar.innerHTML = `<span class="admin-badge">Admin mode</span><button class="admin-link" id="signOutBtn">Sign out</button>`;
     document.getElementById('signOutBtn').onclick = () => { auth.signOut(); };
   } else {
-    adminBar.innerHTML = `<button class="admin-link" id="adminSignInBtn">Catalog admin</button>`;
+    adminBar.innerHTML = `<button class="admin-link" id="adminSignInBtn">Library admin</button>`;
     document.getElementById('adminSignInBtn').onclick = openLoginModal;
   }
 }
@@ -788,6 +873,8 @@ grid.addEventListener('click', (e) => {
     copyPrompt(prompt);
   } else if(action === 'expand'){
     openModal(prompt);
+  } else if(action === 'edit'){
+    openEditPromptModal(prompt);
   } else if(action === 'delete'){
     deletePrompt(id);
   }
@@ -834,12 +921,16 @@ function openModal(prompt){
     <div class="modal-actions">
       <button class="copy-btn" id="modalCopy">Copy prompt</button>
       <button class="fav-btn ${isFav ? 'active' : ''}" id="modalFav" style="font-size:22px;">${isFav ? '★' : '☆'}</button>
+      ${state.isAdmin ? `<button class="admin-link" id="modalEdit">Edit</button>` : ''}
     </div>
   `;
   overlay.classList.add('show');
   document.getElementById('modalClose').onclick = closeModal;
   document.getElementById('modalCopy').onclick = () => copyPrompt(prompt);
   document.getElementById('modalFav').onclick = () => { toggleFavorite(prompt.id); closeModal(); };
+  if(state.isAdmin){
+    document.getElementById('modalEdit').onclick = () => openEditPromptModal(prompt);
+  }
 }
 
 function closeModal(){
@@ -882,7 +973,7 @@ function openLoginModal(){
 }
 
 function openAddModal(){
-  const existingCats = Array.from(new Set(state.prompts.map(p => p.cat)));
+  const existingCats = state.categories.slice();
   modal.innerHTML = `
     <button class="modal-close" id="modalClose">&times;</button>
     <h2>File a new prompt</h2>
@@ -931,6 +1022,7 @@ function openAddModal(){
       document.getElementById('addError').style.display = 'block';
       return;
     }
+    if(!state.categories.includes(cat)){ state.categories.push(cat); }
     const newId = state.prompts.length ? Math.max(...state.prompts.map(p => p.id)) + 1 : 1;
     state.prompts.push({ id: newId, cat, title, body, models });
     savePrompts();
@@ -938,6 +1030,138 @@ function openAddModal(){
     state.activeTab = cat;
     render();
   };
+}
+
+function openEditPromptModal(prompt){
+  const existingCats = state.categories.slice();
+  if(!existingCats.includes(prompt.cat)){ existingCats.push(prompt.cat); }
+  modal.innerHTML = `
+    <button class="modal-close" id="modalClose">&times;</button>
+    <h2>Edit prompt</h2>
+    <div class="form-field">
+      <label for="fTitle">Title</label>
+      <input type="text" id="fTitle" value="${escapeAttr(prompt.title)}">
+    </div>
+    <div class="form-field">
+      <label for="fCat">Category</label>
+      <select id="fCat">
+        ${existingCats.map(c => `<option value="${escapeAttr(c)}" ${c === prompt.cat ? 'selected' : ''}>${c}</option>`).join('')}
+        <option value="__new__">+ New category…</option>
+      </select>
+    </div>
+    <div class="form-field" id="fNewCatField" style="display:none;">
+      <label for="fNewCat">New category name</label>
+      <input type="text" id="fNewCat" placeholder="e.g. Video">
+    </div>
+    <div class="form-field">
+      <label for="fBody">Prompt text</label>
+      <textarea id="fBody">${escapeHTML(prompt.body)}</textarea>
+    </div>
+    <div class="form-field">
+      <label for="fModels">Best for (optional)</label>
+      <input type="text" id="fModels" value="${escapeAttr(prompt.models)}">
+    </div>
+    <div class="form-error" id="editError" style="display:none;">Please add at least a title and prompt text.</div>
+    <div class="modal-actions">
+      <button class="copy-btn" id="editSubmit">Save changes</button>
+    </div>
+  `;
+  overlay.classList.add('show');
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('fCat').addEventListener('change', (e) => {
+    document.getElementById('fNewCatField').style.display = e.target.value === '__new__' ? 'block' : 'none';
+  });
+  document.getElementById('editSubmit').onclick = () => {
+    const title = document.getElementById('fTitle').value.trim();
+    const body = document.getElementById('fBody').value.trim();
+    const models = document.getElementById('fModels').value.trim() || 'Any AI assistant';
+    let cat = document.getElementById('fCat').value;
+    if(cat === '__new__'){
+      cat = document.getElementById('fNewCat').value.trim() || 'Uncategorized';
+    }
+    if(!title || !body){
+      document.getElementById('editError').style.display = 'block';
+      return;
+    }
+    if(!state.categories.includes(cat)){ state.categories.push(cat); }
+    state.prompts = state.prompts.map(p => p.id === prompt.id ? { ...p, title, body, models, cat } : p);
+    savePrompts();
+    closeModal();
+    state.activeTab = cat;
+    render();
+  };
+}
+
+function openEditCategoryModal(oldCat){
+  modal.innerHTML = `
+    <button class="modal-close" id="modalClose">&times;</button>
+    <h2>Rename category</h2>
+    <div class="form-field">
+      <label for="catNewName">New name for "${oldCat}"</label>
+      <input type="text" id="catNewName" value="${oldCat}">
+    </div>
+    <div class="form-error" id="catError" style="display:none;">Please enter a category name.</div>
+    <div class="modal-actions">
+      <button class="copy-btn" id="catSubmit">Save</button>
+    </div>
+  `;
+  overlay.classList.add('show');
+  document.getElementById('modalClose').onclick = closeModal;
+  const input = document.getElementById('catNewName');
+  const submit = () => {
+    const newCat = input.value.trim();
+    if(!newCat){
+      document.getElementById('catError').style.display = 'block';
+      return;
+    }
+    if(newCat === oldCat){ closeModal(); return; }
+    // Renaming updates every prompt currently filed under the old category.
+    // If newCat matches an existing category, the two are merged.
+    state.prompts = state.prompts.map(p => p.cat === oldCat ? { ...p, cat: newCat } : p);
+    state.categories = state.categories.filter(c => c !== oldCat);
+    if(!state.categories.includes(newCat)){ state.categories.push(newCat); }
+    savePrompts();
+    if(state.activeTab === oldCat){ state.activeTab = newCat; }
+    closeModal();
+    render();
+  };
+  document.getElementById('catSubmit').onclick = submit;
+  input.addEventListener('keydown', (e) => { if(e.key === 'Enter') submit(); });
+  input.focus();
+  input.select();
+}
+
+function openAddCategoryModal(){
+  modal.innerHTML = `
+    <button class="modal-close" id="modalClose">&times;</button>
+    <h2>Add a new category</h2>
+    <div class="form-field">
+      <label for="newCatName">Category name</label>
+      <input type="text" id="newCatName" placeholder="e.g. Video">
+    </div>
+    <div class="form-error" id="newCatError" style="display:none;">Please enter a name — and make sure it doesn't already exist.</div>
+    <div class="modal-actions">
+      <button class="copy-btn" id="newCatSubmit">Add category</button>
+    </div>
+  `;
+  overlay.classList.add('show');
+  document.getElementById('modalClose').onclick = closeModal;
+  const input = document.getElementById('newCatName');
+  const submit = () => {
+    const name = input.value.trim();
+    if(!name || getCategories().includes(name)){
+      document.getElementById('newCatError').style.display = 'block';
+      return;
+    }
+    state.categories.push(name);
+    savePrompts();
+    state.activeTab = name;
+    closeModal();
+    render();
+  };
+  document.getElementById('newCatSubmit').onclick = submit;
+  input.addEventListener('keydown', (e) => { if(e.key === 'Enter') submit(); });
+  input.focus();
 }
 
 overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(); });
