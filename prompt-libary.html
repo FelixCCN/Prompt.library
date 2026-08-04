@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Prompt Catalog</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Special+Elite&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --paper:#ECE6D6;
+  --paper-shadow:#DCD5BF;
+  --card:#FBF8EF;
+  --card-edge:#E4DEC9;
+  --ink:#23281F;
+  --ink-soft:#5B6152;
+  --accent:#4B6B53;
+  --accent-dark:#37503C;
+  --mustard:#B98A2E;
+  --line:#C9C0A6;
+  --shadow: rgba(35,40,31,0.18);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    repeating-linear-gradient(180deg, rgba(0,0,0,0.015) 0px, rgba(0,0,0,0.015) 1px, transparent 1px, transparent 3px),
+    var(--paper);
+  color:var(--ink);
+  font-family:'Source Serif 4', Georgia, serif;
+  min-height:100vh;
+}
+
+.mono{font-family:'IBM Plex Mono', monospace;}
+.type{font-family:'Special Elite', monospace;}
+
+/* ============ HEADER ============ */
+.header{
+  padding:56px 24px 28px;
+  text-align:center;
+  border-bottom: 3px double var(--line);
+  position:relative;
+}
+.header .eyebrow{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  letter-spacing:0.28em;
+  text-transform:uppercase;
+  color:var(--accent-dark);
+  margin-bottom:10px;
+}
+.header h1{
+  font-family:'Crimson Pro', 'Source Serif 4', serif;
+  font-weight:600;
+  font-style:italic;
+  font-size:clamp(38px, 6vw, 60px);
+  margin:0 0 10px;
+  letter-spacing:0.01em;
+  color:var(--ink);
+}
+.header p{
+  margin:0 auto;
+  max-width:520px;
+  color:var(--ink-soft);
+  font-size:16px;
+  line-height:1.5;
+}
+
+/* ============ CONTROLS ============ */
+.controls{
+  max-width:1100px;
+  margin:0 auto;
+  padding:28px 24px 8px;
+}
+.search-row{
+  display:flex;
+  justify-content:center;
+  margin-bottom:20px;
+}
+.search-box{
+  width:100%;
+  max-width:480px;
+  position:relative;
+}
+.search-box input{
+  width:100%;
+  padding:12px 16px 12px 40px;
+  border:1.5px solid var(--line);
+  background:var(--card);
+  border-radius:2px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:14px;
+  color:var(--ink);
+  outline:none;
+  box-shadow: inset 0 1px 3px rgba(35,40,31,0.08);
+}
+.search-box input:focus{
+  border-color:var(--accent);
+}
+.search-box::before{
+  content:"⌕";
+  position:absolute;
+  left:14px;
+  top:50%;
+  transform:translateY(-50%);
+  color:var(--ink-soft);
+  font-size:16px;
+}
+.search-box input::placeholder{color:#9A9682;}
+
+.tabs{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  justify-content:center;
+}
+.tab{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  padding:8px 14px;
+  background:var(--card);
+  border:1.5px solid var(--card-edge);
+  border-bottom:3px solid var(--card-edge);
+  border-radius:2px 2px 0 0;
+  cursor:pointer;
+  color:var(--ink-soft);
+  transition:all 0.15s ease;
+  user-select:none;
+}
+.tab:hover{ color:var(--ink); border-color:var(--line); }
+.tab.active{
+  background:var(--accent);
+  border-color:var(--accent-dark);
+  border-bottom-color:var(--mustard);
+  color:#F8F5EA;
+}
+.tab .count{ opacity:0.65; margin-left:4px; }
+
+.results-meta{
+  max-width:1100px;
+  margin:18px auto 6px;
+  padding:0 24px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+  color:var(--ink-soft);
+  text-align:center;
+}
+
+/* ============ GRID ============ */
+.grid{
+  max-width:1100px;
+  margin:0 auto;
+  padding:20px 24px 80px;
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+  gap:22px;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--card-edge);
+  border-radius:2px;
+  padding:18px 18px 16px;
+  position:relative;
+  box-shadow: 2px 3px 0 var(--card-edge), 0 6px 14px var(--shadow);
+  display:flex;
+  flex-direction:column;
+  min-height:230px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.card:hover{
+  transform:translateY(-2px);
+  box-shadow: 2px 4px 0 var(--card-edge), 0 10px 20px var(--shadow);
+}
+.card-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  border-bottom:1px dashed var(--line);
+  padding-bottom:8px;
+  margin-bottom:10px;
+}
+.card-cat{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.5px;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  color:var(--accent-dark);
+}
+.card-no{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.5px;
+  color:var(--ink-soft);
+}
+.fav-btn{
+  background:none;
+  border:none;
+  cursor:pointer;
+  font-size:17px;
+  line-height:1;
+  color:var(--line);
+  padding:0;
+  margin-left:10px;
+  transition:color 0.15s ease, transform 0.15s ease;
+}
+.fav-btn.active{ color:var(--mustard); transform:scale(1.1); }
+.fav-btn:hover{ color:var(--mustard); }
+
+.card-title{
+  font-family:'Crimson Pro', 'Source Serif 4', serif;
+  font-weight:600;
+  font-size:19px;
+  margin:0 0 8px;
+  line-height:1.3;
+  color:var(--ink);
+}
+.card-body{
+  font-size:14px;
+  line-height:1.5;
+  color:var(--ink-soft);
+  flex-grow:1;
+  margin-bottom:12px;
+  display:-webkit-box;
+  -webkit-line-clamp:5;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.card-tags{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.5px;
+  color:var(--ink-soft);
+  margin-bottom:12px;
+}
+.card-tags b{ color:var(--accent-dark); font-weight:600; }
+
+.card-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  position:relative;
+}
+.copy-btn{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+  letter-spacing:0.05em;
+  text-transform:uppercase;
+  padding:8px 14px;
+  background:var(--accent);
+  color:#F8F5EA;
+  border:1px solid var(--accent-dark);
+  border-radius:2px;
+  cursor:pointer;
+  transition:background 0.15s ease;
+}
+.copy-btn:hover{ background:var(--accent-dark); }
+.expand-btn{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  color:var(--ink-soft);
+  background:none;
+  border:none;
+  cursor:pointer;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+
+/* stamp animation */
+.stamp{
+  position:absolute;
+  right:8px;
+  top:-46px;
+  font-family:'Special Elite', monospace;
+  font-size:15px;
+  color:#A13B2E;
+  border:2.5px solid #A13B2E;
+  padding:3px 10px;
+  border-radius:4px;
+  transform:rotate(-11deg) scale(1.5);
+  opacity:0;
+  pointer-events:none;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  background:rgba(251,248,239,0.9);
+}
+.stamp.show{
+  animation: stampIn 1.3s ease forwards;
+}
+@keyframes stampIn{
+  0%{ opacity:0; transform:rotate(-11deg) scale(1.8); }
+  15%{ opacity:1; transform:rotate(-11deg) scale(1); }
+  75%{ opacity:1; transform:rotate(-11deg) scale(1); }
+  100%{ opacity:0; transform:rotate(-11deg) scale(1); }
+}
+
+/* card modal */
+.overlay{
+  position:fixed; inset:0;
+  background:rgba(35,40,31,0.45);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  z-index:50;
+}
+.overlay.show{ display:flex; }
+.modal{
+  background:var(--card);
+  max-width:560px;
+  width:100%;
+  padding:28px;
+  border-radius:2px;
+  border:1px solid var(--card-edge);
+  box-shadow:0 20px 50px rgba(0,0,0,0.3);
+  max-height:80vh;
+  overflow-y:auto;
+}
+.modal-close{
+  float:right;
+  background:none;
+  border:none;
+  font-size:20px;
+  cursor:pointer;
+  color:var(--ink-soft);
+  line-height:1;
+}
+.modal h2{
+  font-family:'Crimson Pro', 'Source Serif 4', serif;
+  font-weight:600;
+  margin:6px 0 14px;
+  font-size:23px;
+}
+.modal .card-body{
+  -webkit-line-clamp:unset;
+  overflow:visible;
+  font-size:15px;
+  white-space:pre-wrap;
+}
+.modal .modal-actions{
+  margin-top:18px;
+  display:flex;
+  gap:10px;
+}
+
+.empty-state{
+  text-align:center;
+  padding:60px 20px;
+  color:var(--ink-soft);
+  font-family:'IBM Plex Mono', monospace;
+  font-size:13px;
+}
+
+footer{
+  text-align:center;
+  padding:24px;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11.5px;
+  color:var(--ink-soft);
+  border-top:1px solid var(--line);
+}
+
+/* ============ ADMIN ============ */
+.admin-bar{
+  max-width:1100px;
+  margin:0 auto;
+  padding:0 24px;
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:14px;
+}
+.admin-link{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  color:var(--ink-soft);
+  background:none;
+  border:none;
+  cursor:pointer;
+  text-decoration:underline;
+  text-underline-offset:2px;
+  padding:4px 0;
+}
+.admin-link:hover{ color:var(--accent-dark); }
+.admin-badge{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:10.5px;
+  letter-spacing:0.06em;
+  text-transform:uppercase;
+  color:var(--accent-dark);
+  background:#E4E9DD;
+  border:1px solid var(--accent);
+  padding:3px 8px;
+  border-radius:2px;
+}
+.add-btn{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  padding:9px 16px;
+  background:var(--mustard);
+  color:#2A2110;
+  border:1px solid #8E6A20;
+  border-radius:2px;
+  cursor:pointer;
+  margin:4px auto 0;
+  display:block;
+}
+.add-btn:hover{ background:#A87D28; }
+.delete-btn{
+  background:none;
+  border:none;
+  cursor:pointer;
+  font-size:14px;
+  line-height:1;
+  color:var(--line);
+  padding:0;
+  margin-left:8px;
+}
+.delete-btn:hover{ color:#A13B2E; }
+
+.form-field{ margin-bottom:14px; text-align:left; }
+.form-field label{
+  display:block;
+  font-family:'IBM Plex Mono', monospace;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color:var(--ink-soft);
+  margin-bottom:5px;
+}
+.form-field input[type="text"],
+.form-field select,
+.form-field textarea{
+  width:100%;
+  padding:10px 12px;
+  border:1.5px solid var(--line);
+  background:#fff;
+  border-radius:2px;
+  font-family:'Source Serif 4', serif;
+  font-size:14px;
+  color:var(--ink);
+  outline:none;
+}
+.form-field textarea{ min-height:110px; resize:vertical; font-family:'IBM Plex Mono', monospace; font-size:13px; }
+.form-field input:focus, .form-field select:focus, .form-field textarea:focus{ border-color:var(--accent); }
+.form-error{
+  font-family:'IBM Plex Mono', monospace;
+  font-size:12px;
+  color:#A13B2E;
+  margin-top:-6px;
+  margin-bottom:12px;
+}
+
+@media (max-width:480px){
+  .header{ padding:40px 16px 22px; }
+  .grid{ grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="eyebrow">An index of ready-to-use prompts</div>
+  <h1>The Prompt Catalog</h1>
+  <p>Thirty entries, filed by subject. Find one you like, copy it, paste it into your generative AI of choice, and swap out the bracketed parts.</p>
+</div>
+
+<div class="controls">
+  <div class="search-row">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Search the catalog…" autocomplete="off">
+    </div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+</div>
+
+<div class="admin-bar" id="adminBar"></div>
+
+<div class="results-meta" id="resultsMeta"></div>
+
+<div id="addBtnSlot"></div>
+
+<div class="grid" id="grid"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<footer>
+  Card catalog reads left to right, top to bottom — same as any good library. Favorites are saved to this browser.
+</footer>
+
+<script>
+const PROMPTS_SEED = [
+  {id:1, cat:"Writing", title:"Tighten this paragraph", body:"Rewrite the following paragraph to be 30% shorter while keeping every key point. Flag any sentence you removed and explain why in one line:\n\n[paste paragraph]", models:"Claude, ChatGPT"},
+  {id:2, cat:"Writing", title:"Find my filler words", body:"Read this draft and list every sentence that could be cut without losing meaning. For each, explain in five words or less why it's filler:\n\n[paste draft]", models:"Claude, ChatGPT"},
+  {id:3, cat:"Writing", title:"Match this voice", body:"Read the sample below and describe its voice in a short style guide (sentence length, tone, quirks). Then write a new paragraph about [topic] in that exact voice.\n\nSample: [paste sample]", models:"Claude, ChatGPT, Gemini"},
+  {id:4, cat:"Writing", title:"Devil's advocate edit", body:"Play the toughest critic of this piece. List the five most likely objections a smart, skeptical reader would raise, then suggest one fix per objection:\n\n[paste piece]", models:"Claude, ChatGPT"},
+
+  {id:5, cat:"Coding", title:"Explain this error like I'm five steps behind", body:"Explain this error message in plain language, tell me the most likely cause, and give me the smallest possible fix to test first:\n\n[paste error + relevant code]", models:"Claude, ChatGPT, Copilot"},
+  {id:6, cat:"Coding", title:"Code review, no ego", body:"Review this code as a senior engineer doing a respectful but thorough PR review. Group feedback into: bugs, readability, performance, and nitpicks. Skip praise, just the notes:\n\n[paste code]", models:"Claude, ChatGPT"},
+  {id:7, cat:"Coding", title:"Rubber duck this bug", body:"I'll describe a bug. Ask me one clarifying question at a time, in the order a senior debugger would, until we find the root cause. Don't suggest fixes yet, just ask questions:\n\n[describe bug]", models:"Claude, ChatGPT"},
+  {id:8, cat:"Coding", title:"Write the tests I'm avoiding", body:"Write unit tests for this function, focusing on edge cases I probably forgot: empty input, huge input, wrong types, and boundary values:\n\n[paste function]", models:"Claude, ChatGPT, Copilot"},
+
+  {id:9, cat:"Business", title:"Pressure-test this decision", body:"I'm considering this business decision: [describe decision]. List the three strongest reasons to do it, the three strongest reasons not to, and one question I haven't thought to ask myself.", models:"Claude, ChatGPT"},
+  {id:10, cat:"Business", title:"Turn notes into a one-pager", body:"Turn these messy meeting notes into a clean one-page summary with sections for Decisions, Owners, and Open questions:\n\n[paste notes]", models:"Claude, ChatGPT, Gemini"},
+  {id:11, cat:"Business", title:"Negotiation prep", body:"I'm about to negotiate [describe situation]. List the other side's likely priorities, my strongest leverage points, and one opening offer that's ambitious but defensible.", models:"Claude, ChatGPT"},
+  {id:12, cat:"Business", title:"Kill the jargon", body:"Rewrite this business update so a smart 12-year-old could follow it, without losing any of the substance:\n\n[paste update]", models:"Claude, ChatGPT"},
+
+  {id:13, cat:"Marketing", title:"Headline lineup", body:"Write 10 headlines for [product/post], ranging from safe-and-clear to bold-and-risky. Label each one on that spectrum.", models:"Claude, ChatGPT"},
+  {id:14, cat:"Marketing", title:"Find the real hook", body:"Here's a description of what I'm offering: [paste description]. Identify the single most compelling benefit a customer actually cares about, not the feature I'm proudest of.", models:"Claude, ChatGPT"},
+  {id:15, cat:"Marketing", title:"Audience switch", body:"Rewrite this pitch three times: once for a skeptical expert, once for a total beginner, and once for someone who just wants the bottom line:\n\n[paste pitch]", models:"Claude, ChatGPT, Gemini"},
+  {id:16, cat:"Marketing", title:"Ad fatigue check", body:"Look at these five ad variations and tell me which ones sound the most alike, so I know what to retire:\n\n[paste variations]", models:"Claude, ChatGPT"},
+
+  {id:17, cat:"Image", title:"Style stack", body:"I want an image of [subject]. Suggest three completely different visual styles I could render it in, each described in one vivid sentence I can drop straight into an image prompt.", models:"Midjourney, DALL·E, Imagen"},
+  {id:18, cat:"Image", title:"Lighting and mood pass", body:"Take this image prompt and give me three lighting variations (e.g. golden hour, studio, moody overcast) written as short prompt add-ons:\n\n[paste image prompt]", models:"Midjourney, DALL·E, Imagen"},
+  {id:19, cat:"Image", title:"Composition doctor", body:"My image prompt keeps coming out cluttered: [paste prompt]. Rewrite it with clearer subject focus, camera angle, and negative space instructions.", models:"Midjourney, DALL·E, Imagen"},
+  {id:20, cat:"Image", title:"Consistent character sheet", body:"Write a reusable character description I can reuse across prompts to keep [character] visually consistent: appearance, outfit, and one distinguishing feature.", models:"Midjourney, DALL·E"},
+
+  {id:21, cat:"Productivity", title:"Triage my day", body:"Here's my task list for today: [paste list]. Sort it into Must do, Should do, and Could skip, and tell me which single task will matter most in a month.", models:"Claude, ChatGPT"},
+  {id:22, cat:"Productivity", title:"Decision, not deliberation", body:"I keep going back and forth on this decision: [describe decision]. Ask me three questions that would actually resolve it, then tell me what my answers imply.", models:"Claude, ChatGPT"},
+  {id:23, cat:"Productivity", title:"Meeting worth having", body:"I'm about to schedule a meeting about [topic]. Tell me if this could be an email instead, and if not, give me a 4-line agenda that keeps it under 20 minutes.", models:"Claude, ChatGPT"},
+  {id:24, cat:"Productivity", title:"Weekly review", body:"Here's what I did this week: [paste notes]. Summarize it into three lines: what moved forward, what stalled, and one thing to change next week.", models:"Claude, ChatGPT, Gemini"},
+
+  {id:25, cat:"Learning", title:"Explain it three ways", body:"Explain [concept] three times: once like I'm new to the field, once with the real technical depth, and once as a single memorable analogy.", models:"Claude, ChatGPT, Gemini"},
+  {id:26, cat:"Learning", title:"Test my understanding", body:"Ask me five questions about [topic] that get progressively harder, one at a time. Don't give me the answer until I attempt each one.", models:"Claude, ChatGPT"},
+  {id:27, cat:"Learning", title:"Find the gaps", body:"I think I understand [topic]. Ask me to explain it back to you, then point out exactly where my explanation breaks down.", models:"Claude, ChatGPT"},
+
+  {id:28, cat:"Fun", title:"Two-line story duel", body:"We're writing a story two lines at a time, alternating. I'll start: [your line]. Continue it, then stop and wait for me.", models:"Claude, ChatGPT"},
+  {id:29, cat:"Fun", title:"Roast my plan gently", body:"Here's my plan: [describe plan]. Give me a good-natured roast of its weakest points, then follow it with one genuinely useful fix.", models:"Claude, ChatGPT"},
+  {id:30, cat:"Fun", title:"Unexpected combo", body:"Combine [thing A] and [thing B] into a single ridiculous but oddly plausible product idea, then pitch it in one enthusiastic paragraph.", models:"Claude, ChatGPT"},
+];
+
+// Change this to your own passphrase before publishing.
+// Note: this is a front-end-only lock. It hides the add/delete controls
+// from ordinary visitors but is not real server-side security.
+const ADMIN_PASSWORD = "catalog2026";
+
+let state = {
+  activeTab: "All",
+  query: "",
+  favorites: [],
+  prompts: [],
+  isAdmin: false
+};
+
+const grid = document.getElementById('grid');
+const tabsEl = document.getElementById('tabs');
+const searchInput = document.getElementById('searchInput');
+const resultsMeta = document.getElementById('resultsMeta');
+const overlay = document.getElementById('overlay');
+const modal = document.getElementById('modal');
+const adminBar = document.getElementById('adminBar');
+const addBtnSlot = document.getElementById('addBtnSlot');
+
+function getCategories(){
+  const seen = [];
+  state.prompts.forEach(p => { if(!seen.includes(p.cat)) seen.push(p.cat); });
+  return ["All", ...seen, "Favorites"];
+}
+
+async function loadPrompts(){
+  try{
+    const res = await window.storage.get('prompts', true);
+    if(res && res.value){
+      state.prompts = JSON.parse(res.value);
+      return;
+    }
+  }catch(e){ /* nothing stored yet */ }
+  // First run: seed shared storage with the default catalog.
+  state.prompts = PROMPTS_SEED.slice();
+  try{ await window.storage.set('prompts', JSON.stringify(state.prompts), true); }catch(e){ console.error(e); }
+}
+
+async function savePrompts(){
+  try{ await window.storage.set('prompts', JSON.stringify(state.prompts), true); }
+  catch(e){ console.error('Could not save prompts', e); }
+}
+
+async function loadFavorites(){
+  try{
+    const res = await window.storage.get('favorites', false);
+    if(res && res.value){
+      state.favorites = JSON.parse(res.value);
+    }
+  }catch(e){
+    state.favorites = [];
+  }
+}
+
+function checkAdminSession(){
+  state.isAdmin = sessionStorage_safe_get('promptCatalogAdmin') === 'true';
+}
+function sessionStorage_safe_get(key){
+  try{ return sessionStorage.getItem(key); }catch(e){ return null; }
+}
+function sessionStorage_safe_set(key, val){
+  try{ sessionStorage.setItem(key, val); }catch(e){ /* ignore */ }
+}
+
+async function init(){
+  await loadPrompts();
+  await loadFavorites();
+  checkAdminSession();
+  renderAdminBar();
+  render();
+}
+
+async function saveFavorites(){
+  try{
+    await window.storage.set('favorites', JSON.stringify(state.favorites), false);
+  }catch(e){
+    console.error('Could not save favorites', e);
+  }
+}
+
+function toggleFavorite(id){
+  const idx = state.favorites.indexOf(id);
+  if(idx === -1){ state.favorites.push(id); }
+  else { state.favorites.splice(idx,1); }
+  saveFavorites();
+  render();
+}
+
+function categoryCount(cat){
+  if(cat === "All") return state.prompts.length;
+  if(cat === "Favorites") return state.favorites.length;
+  return state.prompts.filter(p => p.cat === cat).length;
+}
+
+function renderTabs(){
+  tabsEl.innerHTML = '';
+  getCategories().forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (state.activeTab === cat ? ' active' : '');
+    btn.innerHTML = `${cat === "Favorites" ? "★ " : ""}${cat} <span class="count">${categoryCount(cat)}</span>`;
+    btn.onclick = () => { state.activeTab = cat; render(); };
+    tabsEl.appendChild(btn);
+  });
+}
+
+function getFiltered(){
+  let list = state.prompts;
+  if(state.activeTab === "Favorites"){
+    list = list.filter(p => state.favorites.includes(p.id));
+  } else if(state.activeTab !== "All"){
+    list = list.filter(p => p.cat === state.activeTab);
+  }
+  if(state.query.trim()){
+    const q = state.query.trim().toLowerCase();
+    list = list.filter(p =>
+      p.title.toLowerCase().includes(q) ||
+      p.body.toLowerCase().includes(q) ||
+      p.cat.toLowerCase().includes(q)
+    );
+  }
+  return list;
+}
+
+function cardHTML(p, idx){
+  const isFav = state.favorites.includes(p.id);
+  const num = String(p.id).padStart(3,'0');
+  return `
+    <div class="card" data-id="${p.id}">
+      <div class="card-top">
+        <span class="card-cat">${p.cat}</span>
+        <span class="card-no">No. ${num}</span>
+        <button class="fav-btn ${isFav ? 'active' : ''}" data-action="fav" data-id="${p.id}" title="Save to favorites">${isFav ? '★' : '☆'}</button>
+        ${state.isAdmin ? `<button class="delete-btn" data-action="delete" data-id="${p.id}" title="Delete this prompt">✕</button>` : ''}
+      </div>
+      <h3 class="card-title">${p.title}</h3>
+      <div class="card-body">${escapeHTML(p.body)}</div>
+      <div class="card-tags"><b>Best for:</b> ${p.models}</div>
+      <div class="card-footer">
+        <button class="copy-btn" data-action="copy" data-id="${p.id}">Copy prompt</button>
+        <button class="expand-btn" data-action="expand" data-id="${p.id}">Read full card</button>
+        <span class="stamp" id="stamp-${p.id}">Copied</span>
+      </div>
+    </div>
+  `;
+}
+
+function escapeHTML(str){
+  const div = document.createElement('div');
+  div.innerText = str;
+  return div.innerHTML;
+}
+
+function render(){
+  renderTabs();
+  renderAdminBar();
+  const filtered = getFiltered();
+  resultsMeta.textContent = `${filtered.length} ${filtered.length === 1 ? 'entry' : 'entries'} on file`;
+  addBtnSlot.innerHTML = state.isAdmin ? `<button class="add-btn" id="openAddBtn">+ Add a new prompt</button>` : '';
+  if(state.isAdmin){
+    document.getElementById('openAddBtn').onclick = openAddModal;
+  }
+  if(filtered.length === 0){
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">Nothing filed under that search. Try a different term or category.</div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map(cardHTML).join('');
+}
+
+function renderAdminBar(){
+  if(state.isAdmin){
+    adminBar.innerHTML = `<span class="admin-badge">Admin mode</span><button class="admin-link" id="signOutBtn">Sign out</button>`;
+    document.getElementById('signOutBtn').onclick = () => {
+      state.isAdmin = false;
+      sessionStorage_safe_set('promptCatalogAdmin', 'false');
+      render();
+    };
+  } else {
+    adminBar.innerHTML = `<button class="admin-link" id="adminSignInBtn">Catalog admin</button>`;
+    document.getElementById('adminSignInBtn').onclick = openLoginModal;
+  }
+}
+
+grid.addEventListener('click', (e) => {
+  const btn = e.target.closest('button');
+  if(!btn) return;
+  const id = parseInt(btn.dataset.id);
+  const action = btn.dataset.action;
+  const prompt = state.prompts.find(p => p.id === id);
+  if(action === 'fav'){
+    toggleFavorite(id);
+  } else if(action === 'copy'){
+    copyPrompt(prompt);
+  } else if(action === 'expand'){
+    openModal(prompt);
+  } else if(action === 'delete'){
+    deletePrompt(id);
+  }
+});
+
+function deletePrompt(id){
+  const prompt = state.prompts.find(p => p.id === id);
+  if(!prompt) return;
+  if(!confirm(`Delete "${prompt.title}" from the catalog? This can't be undone.`)) return;
+  state.prompts = state.prompts.filter(p => p.id !== id);
+  state.favorites = state.favorites.filter(fid => fid !== id);
+  savePrompts();
+  saveFavorites();
+  render();
+}
+
+function copyPrompt(prompt){
+  navigator.clipboard.writeText(prompt.body).then(() => {
+    const stamp = document.getElementById(`stamp-${prompt.id}`);
+    if(stamp){
+      stamp.classList.remove('show');
+      void stamp.offsetWidth; // restart animation
+      stamp.classList.add('show');
+    }
+  }).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = prompt.body;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  });
+}
+
+function openModal(prompt){
+  const isFav = state.favorites.includes(prompt.id);
+  modal.innerHTML = `
+    <button class="modal-close" id="modalClose">&times;</button>
+    <span class="card-cat">${prompt.cat} · No. ${String(prompt.id).padStart(3,'0')}</span>
+    <h2>${prompt.title}</h2>
+    <div class="card-body">${escapeHTML(prompt.body)}</div>
+    <div class="card-tags"><b>Best for:</b> ${prompt.models}</div>
+    <div class="modal-actions">
+      <button class="copy-btn" id="modalCopy">Copy prompt</button>
+      <button class="fav-btn ${isFav ? 'active' : ''}" id="modalFav" style="font-size:22px;">${isFav ? '★' : '☆'}</button>
+    </div>
+  `;
+  overlay.classList.add('show');
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('modalCopy').onclick = () => copyPrompt(prompt);
+  document.getElementById('modalFav').onclick = () => { toggleFavorite(prompt.id); closeModal(); };
+}
+
+function closeModal(){
+  overlay.classList.remove('show');
+}
+
+function openLoginModal(){
+  modal.innerHTML = `
+    <button class="modal-close" id="modalClose">&times;</button>
+    <h2>Catalog admin</h2>
+    <div class="form-field">
+      <label for="pwInput">Passphrase</label>
+      <input type="password" id="pwInput" placeholder="Enter admin passphrase" autocomplete="off">
+    </div>
+    <div class="form-error" id="pwError" style="display:none;">That's not it. Try again.</div>
+    <div class="modal-actions">
+      <button class="copy-btn" id="pwSubmit">Sign in</button>
+    </div>
+  `;
+  overlay.classList.add('show');
+  document.getElementById('modalClose').onclick = closeModal;
+  const pwInput = document.getElementById('pwInput');
+  const submit = () => {
+    if(pwInput.value === ADMIN_PASSWORD){
+      state.isAdmin = true;
+      sessionStorage_safe_set('promptCatalogAdmin', 'true');
+      closeModal();
+      render();
+    } else {
+      document.getElementById('pwError').style.display = 'block';
+    }
+  };
+  document.getElementById('pwSubmit').onclick = submit;
+  pwInput.addEventListener('keydown', (e) => { if(e.key === 'Enter') submit(); });
+  pwInput.focus();
+}
+
+function openAddModal(){
+  const existingCats = Array.from(new Set(state.prompts.map(p => p.cat)));
+  modal.innerHTML = `
+    <button class="modal-close" id="modalClose">&times;</button>
+    <h2>File a new prompt</h2>
+    <div class="form-field">
+      <label for="fTitle">Title</label>
+      <input type="text" id="fTitle" placeholder="e.g. Tighten this paragraph">
+    </div>
+    <div class="form-field">
+      <label for="fCat">Category</label>
+      <select id="fCat">
+        ${existingCats.map(c => `<option value="${c}">${c}</option>`).join('')}
+        <option value="__new__">+ New category…</option>
+      </select>
+    </div>
+    <div class="form-field" id="fNewCatField" style="display:none;">
+      <label for="fNewCat">New category name</label>
+      <input type="text" id="fNewCat" placeholder="e.g. Video">
+    </div>
+    <div class="form-field">
+      <label for="fBody">Prompt text</label>
+      <textarea id="fBody" placeholder="Write the full prompt here. Use [brackets] for parts the user should fill in."></textarea>
+    </div>
+    <div class="form-field">
+      <label for="fModels">Best for (optional)</label>
+      <input type="text" id="fModels" placeholder="e.g. Claude, ChatGPT">
+    </div>
+    <div class="form-error" id="addError" style="display:none;">Please add at least a title and prompt text.</div>
+    <div class="modal-actions">
+      <button class="copy-btn" id="addSubmit">Add to catalog</button>
+    </div>
+  `;
+  overlay.classList.add('show');
+  document.getElementById('modalClose').onclick = closeModal;
+  document.getElementById('fCat').addEventListener('change', (e) => {
+    document.getElementById('fNewCatField').style.display = e.target.value === '__new__' ? 'block' : 'none';
+  });
+  document.getElementById('addSubmit').onclick = () => {
+    const title = document.getElementById('fTitle').value.trim();
+    const body = document.getElementById('fBody').value.trim();
+    const models = document.getElementById('fModels').value.trim() || 'Any AI assistant';
+    let cat = document.getElementById('fCat').value;
+    if(cat === '__new__'){
+      cat = document.getElementById('fNewCat').value.trim() || 'Uncategorized';
+    }
+    if(!title || !body){
+      document.getElementById('addError').style.display = 'block';
+      return;
+    }
+    const newId = state.prompts.length ? Math.max(...state.prompts.map(p => p.id)) + 1 : 1;
+    state.prompts.push({ id: newId, cat, title, body, models });
+    savePrompts();
+    closeModal();
+    state.activeTab = cat;
+    render();
+  };
+}
+
+overlay.addEventListener('click', (e) => { if(e.target === overlay) closeModal(); });
+
+searchInput.addEventListener('input', (e) => {
+  state.query = e.target.value;
+  render();
+});
+
+init();
+</script>
+
+</body>
+</html>
